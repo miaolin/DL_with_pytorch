@@ -2,8 +2,7 @@ import math
 
 import torch
 import torch.nn as nn
-
-print(torch.__version__)
+from torchsummary import summary
 
 
 class SelfAttention(nn.Module):
@@ -103,20 +102,64 @@ class TransformerEncoderLayer(nn.Module):
         return x
 
 
+class Patching(nn.Module):
+    def __init__(self, in_channels=3, patch_size=16, embedding_dim=768):
+        super().__init__()
+        self.patch = nn.Sequential(nn.Conv2d(in_channels, out_channels=embedding_dim,
+                                             kernel_size=(patch_size, patch_size),
+                                             stride=(patch_size, patch_size)),
+                                   nn.Flatten(2, 3))
+
+    def forward(self, x):
+        return self.patch(x).transpose(-2, -1)
+
+
+class ViT(nn.Module):
+    def __init__(self,
+                 img_size=224,  # input image size
+                 in_channels=3, # number of channels for the image
+                 patch_size=16, # how big our patches are
+                 embed_dim=768, # embedding dim
+                 num_layers=12, # number of transformer encoders
+                 num_heads=12,  # number o attention heads
+                 attn_dropout=0., # attention dropout
+                 proj_dropout=0., # (MHA) projection dropout
+                 mlp_dropout=0.1, # (MHA) last layer dropout
+                 mlp_ratio=4,     # (MHA) projection FF dimension
+                 n_classes=1000,  # number of classes to classify
+                 ):
+        super().__init__()
+        assert img_size % patch_size == 0, "Image size must be divisible by patch size."
+        self.patchAndEmbed = Patching(in_channels, patch_size, embed_dim)
+        sequence_length = (img_size // patch_size) ** 2
+        hidden_dim = int(embed_dim * mlp_ratio)
+        self.class_embed = nn.Parameter(torch.zeros(1, 1, embed_dim), requires_grad=True)
+
+        self.pe = nn.Parameter(torch.zeros(1, sequence_length + 1, embed_dim), requires_grad=True)
+        self.transformerEncoder = nn.Sequential(*[TransformerEncoderLayer(embed_dim,
+                                                                          num_heads,
+                                                                          attn_dropout,
+                                                                          proj_dropout,
+                                                                          mlp_dropout,
+                                                                          hidden_dim)
+                                                for _ in range(num_layers)])
+        self.norm = nn.LayerNorm(embed_dim)
+        self.mlp = nn.Linear(embed_dim, n_classes)
+
+    def forward(self, x):
+        x = self.patchAndEmbed(x)
+        class_token = self.class_embed.expand(x.shape[0], -1, -1)
+        x = torch.cat((class_token, x), dim=1)
+
+        x += self.pe
+        x = self.transformerEncoder(x)
+        x = x[:, 0]
+        x = self.mlp(self.norm(x))
+        return x
+
+
 if __name__ == "__main__":
-    pass
+    vit_ins = ViT()
+    print(vit_ins)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    #summary(vit_ins, input_size=(3, 3, 3, 224, 224))
