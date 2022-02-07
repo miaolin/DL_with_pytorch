@@ -10,6 +10,7 @@ import torch.nn as nn
 from letter_utils import n_letters, all_letters, line_to_tensor
 from rnn_network import NameClassifyRNN
 
+
 def find_files(path):
     return glob.glob(path)
 
@@ -66,8 +67,8 @@ if __name__ == "__main__":
     # build the category_lines dictioary, a list of names per language
     category_lines = {}
     all_categories = []
-    print(find_files('data/names/*.txt'))
-    for filename in find_files('data/names/*.txt'):
+    print(find_files('../data/names/*.txt'))
+    for filename in find_files('../data/names/*.txt'):
         category = os.path.splitext(os.path.basename(filename))[0]
         all_categories.append(category)
         lines = read_lines(filename)
