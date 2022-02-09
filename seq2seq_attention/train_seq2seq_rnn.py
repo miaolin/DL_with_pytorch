@@ -111,4 +111,10 @@ if __name__ == "__main__":
     encoder1 = EncoderRNN(input_size=input_lang.n_words, hidden_size=hidden_size).to(device)
     attn_decoder1 = AttnDecoderRNN(hidden_size=hidden_size, output_size=output_lang.n_words, dropout_p=0.1).to(device)
 
+    print("encoder is ")
+    print(encoder1)
+
+    print("decoder is ")
+    print(attn_decoder1)
+
     train_iters(input_lang=input_lang, output_lang=output_lang, encoder=encoder1, decoder=attn_decoder1, n_iters=75000, device=device)
