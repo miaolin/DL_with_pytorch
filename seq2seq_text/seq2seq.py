@@ -172,17 +172,13 @@ if __name__ == "__main__":
     for epoch in range(num_epochs):
         print(f"[Epoch {epoch} / {num_epochs}]")
 
-        # model.eval()
-        #
-        # translated_sentence = translate_sentence(
-        #     model, sentence, german, english, device, max_length=50
-        # )
-        #
-        # print(f"Translated example sentence: \n {translated_sentence}")
+        model.eval()
+        translated_sentence = translate_sentence(model, sentence, german, english, device, max_length=50)
+        print(f"Translated example sentence: \n {translated_sentence}")
 
-        model.train()
         n = 0
         for batch in train_iterator:
+            model.train()
             inp_data = batch.src.to(device)
             target = batch.trg.to(device)
 
@@ -210,3 +206,8 @@ if __name__ == "__main__":
             step += 1
 
             print([step, loss.item()])
+
+            if step % 10 == 0:
+                model.eval()
+                translated_sentence = translate_sentence(model, sentence, german, english, device, max_length=50)
+                print(f"Translated example sentence: \n {translated_sentence}")
