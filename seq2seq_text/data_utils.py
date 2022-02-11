@@ -1,4 +1,4 @@
-# use torchtext version 0.4.0
+# use torchtext version 0.6.0
 from torchtext.datasets import Multi30k
 from torchtext.data import Field, BucketIterator
 

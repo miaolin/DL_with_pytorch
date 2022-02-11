@@ -1,6 +1,6 @@
 import torch
 import spacy
-#from torchtext.data.metrics import bleu_score
+from torchtext.data.metrics import bleu_score
 import sys
 
 
@@ -33,7 +33,7 @@ def translate_sentence(model, sentence, german, english, device, max_length=50):
 
     # Build encoder hidden, cell state
     with torch.no_grad():
-        hidden, cell = model.encoder(sentence_tensor)
+        encoder_stats, hidden, cell = model.encoder(sentence_tensor)
 
     outputs = [english.vocab.stoi["<sos>"]]
 
@@ -41,7 +41,7 @@ def translate_sentence(model, sentence, german, english, device, max_length=50):
         previous_word = torch.LongTensor([outputs[-1]]).to(device)
 
         with torch.no_grad():
-            output, hidden, cell = model.decoder(previous_word, hidden, cell)
+            output, hidden, cell = model.decoder(previous_word, encoder_stats, hidden, cell)
             best_guess = output.argmax(1).item()
 
         outputs.append(best_guess)
@@ -56,21 +56,21 @@ def translate_sentence(model, sentence, german, english, device, max_length=50):
     return translated_sentence[1:]
 
 
-# def bleu(data, model, german, english, device):
-#     targets = []
-#     outputs = []
-#
-#     for example in data:
-#         src = vars(example)["src"]
-#         trg = vars(example)["trg"]
-#
-#         prediction = translate_sentence(model, src, german, english, device)
-#         prediction = prediction[:-1]  # remove <eos> token
-#
-#         targets.append([trg])
-#         outputs.append(prediction)
-#
-#     return bleu_score(outputs, targets)
+def bleu(data, model, german, english, device):
+    targets = []
+    outputs = []
+
+    for example in data:
+        src = vars(example)["src"]
+        trg = vars(example)["trg"]
+
+        prediction = translate_sentence(model, src, german, english, device)
+        prediction = prediction[:-1]  # remove <eos> token
+
+        targets.append([trg])
+        outputs.append(prediction)
+
+    return bleu_score(outputs, targets)
 
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
