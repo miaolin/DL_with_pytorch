@@ -1,40 +1,19 @@
+import random
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torchtext.datasets import Multi30k
-from torchtext.data import Field, BucketIterator
 
 # use torchtext version 0.4.0
-
-import spacy
-import random
+from torchtext.data import Field, BucketIterator
 from torch.utils.tensorboard import SummaryWriter
 from utils import translate_sentence
+
+from data_utils import english, german, train_data, valid_data, test_data
 
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 print(device)
-
-
-def tokenize_ger(text):
-    return [tok.text for tok in spacy_ger.tokenizer(text)]
-
-
-def tokenize_eng(text):
-    return [tok.text for tok in spacy_eng.tokenizer(text)]
-
-
-spacy_ger = spacy.load('de_core_news_sm')
-spacy_eng = spacy.load('en_core_web_sm')
-
-german = Field(tokenize=tokenize_ger, lower=True, init_token="<sos>", eos_token="<eos>")
-english = Field(tokenize=tokenize_eng, lower=True, init_token="<sos>", eos_token="<eos>")
-
-#train_data, valid_data, test_data = Multi30k(language_pair=('de', 'en'))
-train_data, valid_data, test_data = Multi30k.splits(exts=(".de", ".en"), fields=(german, english))
-
-german.build_vocab(train_data, max_size=10000, min_freq=2)
-english.build_vocab(train_data, max_size=10000, min_freq=2)
 
 
 class Encoder(nn.Module):
