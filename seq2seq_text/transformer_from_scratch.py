@@ -45,7 +45,7 @@ class SelfAttention(nn.Module):
         )
         # attention shape: (N, heads, query_len, key_len)
         # values shape: (N, value_len, heads, heads_dim)
-        # after einsum (N, query_len, heads, head_dim) than flatten last two dimensions
+        # after einsum (N, query_len, heads, head_dim) then flatten last two dimensions
 
         out = self.fc_out(out)
         return out
@@ -192,6 +192,10 @@ class Transformer(nn.Module):
 
 if __name__ == "__main__":
     device = "cpu"
+    embed_size = 64#256
+    num_layers = 3#6
+    forward_expansion = 4
+    heads = 2#8
     x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0],
                        [1, 8, 7, 3, 4, 5, 6, 7, 2]]).to(device)
 
@@ -202,6 +206,7 @@ if __name__ == "__main__":
     trg_pad_idx = 0
     src_vocab_size = 10
     trg_vocab_size = 10
-    model = Transformer(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx).to(device)
+    model = Transformer(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx, embed_size, num_layers,
+                        forward_expansion, heads).to(device)
     out = model(x, trg[:, :-1])
     print(out.shape)
