@@ -32,9 +32,10 @@ class Encoder(nn.Module):
         # embedding shape: (seq_length, N, embedding_size)
 
         encoder_stats, (hidden, cell) = self.rnn(embedding)
-        # outputs shape: (seq_length, N, hidden_size)
-
+        # outputs shape: (seq_length, N, hidden_size*2)
         # hidden shape: (2, N, hidden_size)
+
+        # concatenate hidden/cell states in the last dimension
         hidden = self.fc_hidden(torch.cat((hidden[0:1], hidden[1:2]), dim=2))
         cell = self.fc_cell(torch.cat((cell[0:1], cell[1:2]), dim=2))
         return encoder_stats, hidden, cell
@@ -71,18 +72,21 @@ class Decoder(nn.Module):
         sequence_length = encoder_states.shape[0]
         h_reshaped = hidden.repeat(sequence_length, 1, 1)
 
+        # h_reshaped: (17,1,1024), encoder_states: (17,1,2048)
         energy = self.relu(self.energy(torch.cat((h_reshaped, encoder_states), dim=2)))
         attention = self.softmax(energy)
-        # seq_length, N, 1
+        # (seq_length, N, 1) -> (N, 1, seq_length)
         attention = attention.permute(1,2,0)
         # N, 1, seq_length
 
+        # encoder_states: (seq_length, N, hidden_size*2) -> (N, seq_length, hidden_size*2)
         encoder_stats = encoder_states.permute(1,0,2)
-        # (N, seq_length, hidden_size*2)
 
-        # (N, 1, hidden_size * 2) --> (1,N, hidden_size*2)
+        # bmm: (N, 1, seq_length) * (N, seq_length, hidden_size*2) -> (N, 1, hidden_size*2)
+        # (N, 1, hidden_size * 2) --> (1, N, hidden_size*2)
         context_vector = torch.bmm(attention, encoder_stats).permute(1,0,2)
 
+        # (N, 1, hidden_size*2) + (N, 1, embedding) -> (1, N, hidden_size*2+embedding)
         rnn_input = torch.cat((context_vector, embedding), dim=2)
 
         outputs, (hidden, cell) = self.rnn(rnn_input, (hidden, cell))
@@ -106,6 +110,9 @@ class seq2seqAttention(nn.Module):
 
         outputs = torch.zeros(target_len, batch_size, target_vocab_size).to(device)
 
+        # encoder_stats: (seq_length, batch, hidden_size*2)
+        # hidden: (1, batch, hidden_size)
+        # cell: (1, batch, hidden_size)
         encoder_stats, hidden, cell = self.encoder(source)
 
         # Grab the first input to the Decoder which will be <SOS> token
